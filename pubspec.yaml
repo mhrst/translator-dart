@@ -1,0 +1,14 @@
+name: translator_dart
+description: Dart libary for generating translations through AI providers
+version: 1.0.0
+homepage: https://github.com/mhrst/translator-dart
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  anthropic_sdk_dart: ^1.5.0
+  googleai_dart: ^3.4.0
+  openai_dart: ^4.3.0
