@@ -43,6 +43,39 @@ void main() {
       expect(frJson['@title'], {'description': 'Greeting'});
     });
 
+    test('uses l10n.yaml for ARB translation paths', () async {
+      final tempDir = await Directory.systemTemp.createTemp('translator_dart_');
+      addTearDown(() async {
+        if (await tempDir.exists()) {
+          await tempDir.delete(recursive: true);
+        }
+      });
+
+      await File('${tempDir.path}/l10n.yaml').writeAsString('''
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+''');
+
+      final l10nDir = Directory(joinAppPath(tempDir.path, 'lib/l10n'));
+      await l10nDir.create(recursive: true);
+      await File('${l10nDir.path}/app_en.arb').writeAsString(
+        const JsonEncoder.withIndent(
+          '  ',
+        ).convert({'@@locale': 'en', 'title': 'Hello'}),
+      );
+
+      final task = ArbTranslation(
+        appDirectory: tempDir.path,
+        client: _FakeTranslationClient(
+          translatePrompt: (prompt) async => 'translated',
+        ),
+      );
+
+      await task.run();
+
+      expect(await File('${l10nDir.path}/app_fr.arb').exists(), isTrue);
+    });
+
     test('filters iOS metadata translation by filename', () async {
       final tempDir = await Directory.systemTemp.createTemp('translator_dart_');
       addTearDown(() async {
@@ -78,6 +111,51 @@ void main() {
       expect(await frNameFile.exists(), isTrue);
       expect(await frNameFile.readAsString(), 'translated');
       expect(await frDescriptionFile.exists(), isFalse);
+    });
+
+    test('filters Android metadata translation by relative paths', () async {
+      final tempDir = await Directory.systemTemp.createTemp('translator_dart_');
+      addTearDown(() async {
+        if (await tempDir.exists()) {
+          await tempDir.delete(recursive: true);
+        }
+      });
+
+      final sourceDir = Directory(
+        '${joinAppPath(tempDir.path, kRelativeAndroidMetadataDir)}/$kAndroidMetadataSourceLocale',
+      );
+      await sourceDir.create(recursive: true);
+      await File('${sourceDir.path}/title.txt').writeAsString('Mamesama');
+      await File('${sourceDir.path}/video.txt').writeAsString('https://x.test');
+      final changelogFile = File('${sourceDir.path}/changelogs/default.txt');
+      await changelogFile.parent.create(recursive: true);
+      await changelogFile.writeAsString('Fixed bugs');
+
+      final task = AndroidMetadataTranslation(
+        appDirectory: tempDir.path,
+        relativePaths: const ['changelogs/default.txt'],
+        client: _FakeTranslationClient(
+          translatePrompt: (prompt) async => 'translated',
+        ),
+      );
+
+      await task.run();
+
+      final frMetadataDir = joinAppPath(
+        tempDir.path,
+        '$kRelativeAndroidMetadataDir/fr-FR',
+      );
+
+      expect(
+        await File('$frMetadataDir/changelogs/default.txt').exists(),
+        isTrue,
+      );
+      expect(
+        await File('$frMetadataDir/changelogs/default.txt').readAsString(),
+        'translated',
+      );
+      expect(await File('$frMetadataDir/title.txt').exists(), isFalse);
+      expect(await File('$frMetadataDir/video.txt').exists(), isFalse);
     });
   });
 }

@@ -16,10 +16,13 @@ class ArbTranslation {
   ArbTranslation({required this.appDirectory, this.force = false, this.client});
 
   Future<void> run() async {
-    final arbFilePath = joinAppPath(appDirectory, kRelativeL10nDir);
+    final l10nConfiguration = resolveL10nConfiguration(appDirectory);
+    final arbFilePath = l10nConfiguration.arbDirectoryPath(appDirectory);
     final translator = ArbTranslator(client: client);
 
-    final sourceFile = File('$arbFilePath/app_en.arb');
+    final sourceFile = File(
+      '$arbFilePath/${l10nConfiguration.templateArbFile}',
+    );
     if (!await sourceFile.exists()) {
       throw FileSystemException(
         'Missing source ARB file for app "$appDirectory"',
@@ -33,7 +36,9 @@ class ArbTranslation {
     await Future.wait(
       flutterTranslationLocales().map((language) async {
         developer.log('Started: $language', name: _kArbTranslationLogName);
-        final appLangArbFile = File('$arbFilePath/app_$language.arb');
+        final appLangArbFile = File(
+          '$arbFilePath/${localizedArbFileName(l10nConfiguration.templateArbFile, language)}',
+        );
         Map<String, dynamic> langJson = {};
 
         if (await appLangArbFile.exists()) {
@@ -79,6 +84,26 @@ class ArbTranslation {
       }),
     );
   }
+}
+
+String localizedArbFileName(String templateArbFile, String locale) {
+  final normalizedLocale = locale.replaceAll('-', '_');
+  final extensionStart = templateArbFile.lastIndexOf('.');
+  final stem = extensionStart == -1
+      ? templateArbFile
+      : templateArbFile.substring(0, extensionStart);
+  final extension = extensionStart == -1
+      ? ''
+      : templateArbFile.substring(extensionStart);
+
+  if (stem.endsWith('_en')) {
+    return '${stem.substring(0, stem.length - 3)}_$normalizedLocale$extension';
+  }
+  if (stem.endsWith('-en')) {
+    return '${stem.substring(0, stem.length - 3)}_$normalizedLocale$extension';
+  }
+
+  return 'app_$normalizedLocale.arb';
 }
 
 /// Translates Flutter ARB values while leaving the file traversal unchanged.

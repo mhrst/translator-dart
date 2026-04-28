@@ -17,11 +17,13 @@ const _kAndroidMetadataLogName = 'translator_dart.android_metadata';
 
 class AndroidMetadataTranslation {
   final String appDirectory;
+  final List<String>? relativePaths;
   final bool force;
   final TranslationClient? client;
 
   AndroidMetadataTranslation({
     required this.appDirectory,
+    this.relativePaths,
     this.force = false,
     this.client,
   });
@@ -36,19 +38,23 @@ class AndroidMetadataTranslation {
       );
     }
 
-    final filesToTranslate = [
-      ...await _existingRelativePaths(
-        sourceDir.path,
-        kAndroidTranslatableMetadataFiles,
-      ),
-      ...await _relativeTextFiles(
-        '$metadataDir/$kAndroidMetadataSourceLocale/changelogs',
-      ),
-    ];
-    final filesToCopy = await _existingRelativePaths(
-      sourceDir.path,
-      kAndroidCopiedMetadataFiles,
-    );
+    final filesToTranslate = relativePaths == null
+        ? [
+            ...await _existingRelativePaths(
+              sourceDir.path,
+              kAndroidTranslatableMetadataFiles,
+            ),
+            ...await _relativeTextFiles(
+              '$metadataDir/$kAndroidMetadataSourceLocale/changelogs',
+            ),
+          ]
+        : await _existingRelativePaths(sourceDir.path, relativePaths!);
+    final filesToCopy = relativePaths == null
+        ? await _existingRelativePaths(
+            sourceDir.path,
+            kAndroidCopiedMetadataFiles,
+          )
+        : <String>[];
 
     if (filesToTranslate.isEmpty && filesToCopy.isEmpty) {
       developer.log(
