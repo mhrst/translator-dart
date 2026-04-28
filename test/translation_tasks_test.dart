@@ -102,10 +102,10 @@ template-arb-file: app_en.arb
       await task.run();
 
       final frNameFile = File(
-        '${joinAppPath(tempDir.path, kRelativeIosMetadataDir)}/fr/name.txt',
+        '${joinAppPath(tempDir.path, kRelativeIosMetadataDir)}/fr-FR/name.txt',
       );
       final frDescriptionFile = File(
-        '${joinAppPath(tempDir.path, kRelativeIosMetadataDir)}/fr/description.txt',
+        '${joinAppPath(tempDir.path, kRelativeIosMetadataDir)}/fr-FR/description.txt',
       );
 
       expect(await frNameFile.exists(), isTrue);
